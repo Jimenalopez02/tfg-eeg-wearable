@@ -1,0 +1,4 @@
+segment_idx,file_name,label,state_name,start_sec,end_sec,duration_sec
+0,Subject01_1.edf,0,Reposo,0.0,60.002,60.002
+1,Subject01_2.edf,1,Cálculo mental,60.002,120.004,60.002
+2,Subject01_1.edf,0,Reposo,120.004,180.006,60.002

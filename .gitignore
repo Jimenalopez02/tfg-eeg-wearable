@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Sistema Windows
+Thumbs.db
+desktop.ini
+
+# Datasets crudos
+*.edf
+*.mat
+SEED_VIG/Forehead_EEG/
+SEED_VIG/perclos_labels/
+EEGMAT/RECORDS
+EEGMAT/SHA256SUMS.txt
+
+# Datos generados pesados
+*.npy
+*.npz
+
+# Instaladores y ejecutables
+*.exe
+*.msi
+
+# Temporales
+logs/
+outputs/
+~$*.docx

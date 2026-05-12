@@ -1,0 +1,13 @@
+Modelo final 2 canales
+Feature: de_movingAve
+Canales: (1, 2)
+MLP hidden_layer_sizes=(32,), alpha=0.001
+
+Fold 1: COR=0.5777, RMSE=0.3155
+Fold 2: COR=0.6333, RMSE=0.2609
+Fold 3: COR=0.6677, RMSE=0.1834
+Fold 4: COR=0.4162, RMSE=0.2155
+Fold 5: COR=0.5067, RMSE=0.2658
+
+COR global: 0.5383
+RMSE global: 0.2532
