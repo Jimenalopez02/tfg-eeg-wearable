@@ -8,7 +8,7 @@ from pathlib import Path
 
 import joblib
 import numpy as np
-from scipy.signal import butter, filtfilt, iirnotch, resample
+from scipy.signal import butter, sosfiltfilt, iirnotch, tf2sos, resample
 
 from data_source import SocketSource
 from parser_utils import parse_packet, adc_to_centered, PACKET_SIZE
@@ -25,7 +25,7 @@ from logger_utils import (
 # =========================================================
 
 HOST = "127.0.0.1"
-PORT = 50000
+PORT = 50031
 FS_IN = 250  # frecuencia del emulador / hardware conceptual
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -34,7 +34,7 @@ BANDS_COMMON = {
     "delta": (0.5, 4.0),
     "theta": (4.0, 8.0),
     "alpha": (8.0, 13.0),
-    "beta": (13.0, 30.0),
+    "beta":  (13.0, 30.0),
     "gamma": (30.0, 45.0),
 }
 
@@ -78,16 +78,15 @@ def append_predictions_csv(csv_path: str, row: list) -> None:
 
 
 def apply_notch(signal: np.ndarray, fs: int, f0: float = 50.0, q: float = 30.0) -> np.ndarray:
+   
     b, a = iirnotch(w0=f0, Q=q, fs=fs)
-    return filtfilt(b, a, signal)
+    sos = tf2sos(b, a)
+    return sosfiltfilt(sos, signal)
 
 
 def apply_bandpass(signal: np.ndarray, fs: int, low: float, high: float, order: int = 4) -> np.ndarray:
-    nyq = 0.5 * fs
-    low_n = low / nyq
-    high_n = high / nyq
-    b, a = butter(order, [low_n, high_n], btype="band")
-    return filtfilt(b, a, signal)
+    sos = butter(order, [low, high], btype="bandpass", fs=fs, output="sos")
+    return sosfiltfilt(sos, signal)
 
 
 def preprocess_channel(x: np.ndarray, fs: int) -> np.ndarray:
@@ -97,18 +96,14 @@ def preprocess_channel(x: np.ndarray, fs: int) -> np.ndarray:
     return x
 
 
-def differential_entropy_from_band(x: np.ndarray, fs: int, band: tuple[float, float]) -> float:
+def differential_entropy_from_band(x: np.ndarray, fs: int, band: tuple) -> float:
     low, high = band
     xb = apply_bandpass(x, fs, low=low, high=high, order=4)
-
-    var = np.var(xb)
-    var = max(var, 1e-8)
-
-    de = 0.5 * np.log(2 * np.pi * np.e * var)
-    return float(de)
+    var = max(np.var(xb), 1e-8)
+    return float(0.5 * np.log(2 * np.pi * np.e * var))
 
 
-def extract_feature_vector(ch1: np.ndarray, ch2: np.ndarray, fs: int, bands_dict: dict[str, tuple[float, float]]) -> np.ndarray:
+def extract_feature_vector(ch1: np.ndarray, ch2: np.ndarray, fs: int, bands_dict: dict) -> np.ndarray:
     ch1_p = preprocess_channel(ch1, fs)
     ch2_p = preprocess_channel(ch2, fs)
 
@@ -126,9 +121,6 @@ def extract_feature_vector(ch1: np.ndarray, ch2: np.ndarray, fs: int, bands_dict
 # =========================================================
 
 def load_mode_config(mode: str) -> dict:
-    """
-    Devuelve todo lo necesario para ejecutar cada tarea.
-    """
     if mode == "somnolencia":
         pipeline_path = Path(r"..\SEED_VIG\resultados_finales\pipeline_mlp_2canales.pkl").resolve()
 
@@ -140,8 +132,8 @@ def load_mode_config(mode: str) -> dict:
             "model_path": pipeline_path,
             "config_path": None,
             "bands": BANDS_COMMON,
-            "fs_target": FS_IN,           # somnolencia actual trabaja a 250 Hz en tu puente
-            "window_sec": 8.0,            # según tu pipeline actual
+            "fs_target": FS_IN,
+            "window_sec": 8.0,
             "step_sec": 1.0,
             "feature_smooth_windows": 3,
             "prediction_smooth_windows": 5,
@@ -152,7 +144,7 @@ def load_mode_config(mode: str) -> dict:
 
     elif mode == "concentracion":
         model_dir = Path(r"..\EEGMAT\resultados_concentracion_final").resolve()
-        model_path = model_dir / "rf_concentracion_final.joblib"
+        model_path = model_dir / "rf_31sujetos_final.joblib"
         config_path = model_dir / "config_concentracion_final.json"
 
         if not model_path.exists():
@@ -170,7 +162,7 @@ def load_mode_config(mode: str) -> dict:
             "model_path": model_path,
             "config_path": config_path,
             "bands": bands,
-            "fs_target": int(cfg_json["sfreq"]),  # 500 Hz del entrenamiento EEGMAT
+            "fs_target": int(cfg_json["sfreq"]),
             "window_sec": float(cfg_json["window_sec"]),
             "step_sec": float(cfg_json["step_sec"]),
             "feature_smooth_windows": int(cfg_json["moving_k"]),
@@ -210,8 +202,6 @@ def postprocess_somnolencia(model, X_live, pred_queue):
     pred_queue.append(y_pred_clipped)
     y_pred_smooth = float(np.mean(pred_queue))
 
-    row = [time.time(), None, None, y_pred_raw, y_pred_clipped, y_pred_smooth]
-
     return {
         "raw": y_pred_raw,
         "clipped": y_pred_clipped,
@@ -233,10 +223,7 @@ def postprocess_concentracion(model, X_live, pred_queue):
     values, counts = np.unique(np.array(pred_queue), return_counts=True)
     pred_class_smooth = int(values[np.argmax(counts)])
 
-    class_names = {
-        0: "Reposo",
-        1: "Cálculo mental",
-    }
+    class_names = {0: "Reposo", 1: "Cálculo mental"}
 
     return {
         "probas": probas,
@@ -345,7 +332,6 @@ def main():
                 ch1_win = x1_all[-window_samples_in:]
                 ch2_win = x2_all[-window_samples_in:]
 
-                # remuestreo si el modo lo necesita
                 if cfg["fs_target"] != FS_IN:
                     target_len = int(round(len(ch1_win) * cfg["fs_target"] / FS_IN))
                     ch1_proc = resample(ch1_win, target_len)
