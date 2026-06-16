@@ -1,16 +1,5 @@
 """
 evaluar_somnolencia_mejorado.py  — v2
-================================
-Drop-in replacement de evaluar_modelo_final_2canales.py con las siguientes mejoras:
-
-  1. Normalización z-score del target PERCLOS por sujeto → reduce el bias entre sujetos
-  2. Features extendidas: delta_DE temporal (diferencia entre ventanas consecutivas)
-     + asimetría frontal por banda → pasa de 10 a 20 features
-  3. Rechazo de ventanas con artefactos → filtra outliers de amplitud
-  4. Suavizado exponencial adaptativo (EMA) en postprocesado
-  5. LOSO real (Leave-One-Subject-Out, un fold por experimento) en vez de GroupKFold-5
-  6. Resultados con intervalo de confianza por fold + baseline comparativo
-  7. Guarda el pipeline final entrenado con todos los datos
 
 Uso:
   python evaluar_somnolencia_mejorado.py  — v2

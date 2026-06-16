@@ -1,7 +1,3 @@
-# buscar_hiperparametros_somnolencia.py
-# Grid search de arquitectura y regularización del MLP de somnolencia.
-# Protocolo: LOSO real sobre 23 experimentos SEED-VIG.
-# Ranking por COR medio, desempate por RMSE. Guarda resultados en resultados_mejorados/.
 
 from pathlib import Path
 import itertools
