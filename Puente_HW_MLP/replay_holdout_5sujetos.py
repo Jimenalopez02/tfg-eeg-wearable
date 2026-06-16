@@ -1,21 +1,4 @@
-"""
-replay_holdout_5sujetos.py
-==========================
-Replay pseudo-online de los 5 sujetos holdout del EEGMAT que el modelo
-rf_concentracion_final nunca vio durante el entrenamiento (seed=42).
 
-Sujetos holdout: 13, 16, 26, 30, 35
-
-Ejecutar desde la carpeta Puente_HW_MLP:
-    python replay_holdout_5sujetos.py
-
-Genera por sujeto:
-  - holdout_suj{XX}_predictions.csv
-  - holdout_suj{XX}_prob_vs_estado.png
-  - holdout_suj{XX}_clase_vs_estado.png
-
-Y al final un resumen global en holdout_resumen.txt
-"""
 
 import csv
 import json
@@ -37,11 +20,11 @@ from sklearn.metrics import accuracy_score, f1_score, classification_report
 
 # ── Configuración ──────────────────────────────────────────────────────────────
 HOST = "127.0.0.1"
-PORT = 50031  # puerto distinto al original para no interferir
+PORT = 50031  # puerto distinto al original
 
 HOLDOUT_SUBJECTS = [13, 16, 26, 30, 35]
 
-# Rutas relativas desde Puente_HW_MLP (igual que en tus scripts originales)
+# Rutas relativas desde Puente_HW_MLP 
 EEGMAT_DIR  = Path("../EEGMAT").resolve()
 MODEL_PATH = Path("../EEGMAT/resultados_concentracion_final/rf_31sujetos_final.joblib").resolve()
 CONFIG_PATH = Path("../EEGMAT/resultados_concentracion_final/config_concentracion_final.json").resolve()
